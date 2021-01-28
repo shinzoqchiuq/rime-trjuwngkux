@@ -1,0 +1,216 @@
+# Rime schema
+# encoding: utf-8
+
+schema:
+  schema_id: trjuwngkux
+  name: 中古漢語（白一平轉寫）
+  version: "0.1.0"
+  author:
+    - Electric Sheep <shinzoqchiuq@outlook.com>
+  description: |
+    中古漢語輸入方案，採用白一平轉寫（2014版）
+  dependencies:
+    - luna_pinyin
+    - stroke
+
+switches:
+  - name: ascii_mode
+    reset: 0
+    states: [ 中文, 西文 ]
+  - name: full_shape
+    states: [ 半角, 全角 ]
+  - name: simplification
+    states: [ 漢字, 汉字 ]
+  - name: ascii_punct
+    states: [ 。，, ．， ]
+
+engine:
+  processors:
+    - ascii_composer
+    - recognizer
+    - key_binder
+    - speller
+    - punctuator
+    - selector
+    - navigator
+    - express_editor
+  segmentors:
+    - ascii_segmentor
+    - matcher
+    - affix_segmentor@luna_pinyin
+    - affix_segmentor@stroke
+    - abc_segmentor
+    - punct_segmentor
+    - fallback_segmentor
+  translators:
+    - punct_translator
+    - script_translator
+    - script_translator@luna_pinyin
+    - table_translator@stroke
+    - table_translator@custom_phrase
+  filters:
+    - simplifier
+    - uniquifier
+    - reverse_lookup_filter@reverse_lookup
+
+speller:
+  alphabet: abdefghijklmnopqrstuvwxyzXH'+
+  delimiter: ";"
+  algebra:
+    __include: polyhedron2baxter
+    __append:
+      - derive/X/x/
+      - derive/H/h/
+      - derive/'//
+      - derive/\+/v/
+      # 簡拼
+      - abbrev/\b([a-z']).+$/$1/
+      - abbrev/\b([ptk]h||ng|t?sy?r?h?|d?zy?r?|[dtn]r|ny).+$/$1/
+
+translator:
+  dictionary: zyenpheng
+  prism: dzjwenpheng
+  spelling_hints: 5
+  comment_format:
+    __include: polyhedron2baxter
+    __append:
+      - derive/;/ /
+  preedit_format:
+    - derive/(?<!\d)x\d/X/
+    - derive/(?<!\d)h\d/H/
+    - derive/(\d)([aeiouwj])/'$2/
+    - derive/v/+/
+    - derive/;/ /
+
+luna_pinyin:
+  tag: luna_pinyin
+  dictionary: luna_pinyin
+  enable_user_dict: false
+  prefix: '`'
+  suffix: ";"
+  tips: 〔反查〕
+  preedit_format:
+    - xform/([nl])v/$1ü/
+    - xform/([nl])ue/$1üe/
+    - xform/([jqxy])v/$1u/
+
+stroke:
+  tag: stroke
+  dictionary: stroke
+  enable_user_dict: false
+  prefix: '`'
+  suffix: ";"
+  tips: 〔反查〕
+  preedit_format:
+    - xlit/hspnz/一丨丿丶乙/
+
+custom_phrase:
+  dictionary: ""
+  user_dict: custom_phrase
+  db_class: stabledb
+  enable_completion: false
+  enable_sentence: false
+  initial_quality: 1
+
+reverse_lookup:
+  tags: [luna_pinyin, stroke]
+  overwrite_comment: true
+  dictionary: zyenpheng
+  comment_format:
+    __include: polyhedron2baxter
+
+punctuator:
+  import_preset: symbols
+
+key_binder:
+  import_preset: default
+
+recognizer:
+  import_preset: default
+  patterns:
+    punct: "^/([0-9]|10|[A-Za-z]+)$"
+    luna_pinyin: "`[hspnz]*[aeiouv][a-z]*'?$|`[a-gi-moqrt-y][a-z]*;?$"
+    stroke: "`[hspnz]+;?$"
+
+polyhedron2baxter:
+  - "xform/'//"
+  # 聲母
+  - xform/\b(t|c)h(r|j)/$1$2h/
+  - xform/\bc/ts/
+  - xform/\bz/dz/
+  - xform/\bdzs/z/
+  - xform/\b(ts|dz|s|z|n)?j(h?)/$1Y$2j/
+  - xform/\bh/x/
+  - xform/\bgh/h/
+  - xform/\bi/hj/
+  - xform/\by/hy/
+  # 介音
+  - xform/u([aeou])/w$1/
+  - xform/\b(kh?|g|ng|x|q)jye/$1jwie/
+  - xform/\b(kh?|g|ng|x|q)ye/$1jwe/
+  - xform/\b(kh?|g|ng|x|q)jy([int])/$1jwi$2/
+  - xform/\b(kh?|g|ng|x|q)y([int])/$1wi$2/
+  - xform/\b(ph?|b|m|kh?|g|ng|x|q)je/$1jie/
+  - xform/y/jw/
+  - xform/(?<!j|w)i([aeou])/j$1/
+  - xform/(rh?w?)a/$1ae/
+  - xform/(rh?w?)e/$1ea/
+  - xform/\b(ph?|b|m|kh?|g|ng|x|h|q)r(w?)([ae])/$1$2$3/
+  # 通攝
+  - xform/wu(ng|k)/ow$1/
+  - xform/(?<!r|h)u(ng|k)/uw$1/
+  - xform/(?<!r)hu(ng|k)/huw$1/
+  # 宕攝
+  - xform/\b(ph?|b|m)jwa(ng|k)/$1ja$2/
+  # 江攝
+  - xform/r(h?)u(ng|k)/r$1aew$2/
+  - xform/\b(ph?|b|m|kh?|g|ng|x|h|q)raew(ng|k)/$1aew$2/
+  # 止攝
+  - xform/ii(\b|x|h)/ij$1/
+  - xform/(jw?)oi(\b|x|h)/$1Ij$2/
+  - xform/\b(ph?|b|m)jwIj(\b|x|h)/$1jIj$2/
+  - xform/jwi(\b|x|h)/wij$1/
+  # 遇攝
+  - xform/jwo(\b|x|h)/jU$1/
+  - xform/(?<!j|w)o(\b|x|h)/U$1/
+  # 蟹攝
+  - xform/(?<!a|j|i|w)e(\b|x|h)/ej$1/
+  - xform/(?<!j)we(\b|x|h)/wej$1/
+  - xform/d\b/jh/
+  - xform/ae(i|ix|ih)\b/ea$1/
+  - xform/(?<!e)a(i|ix|ih)\b/o$1/
+  - xform/(jw?)ajh\b/$1ojh/
+  - xform/\b(ph?|b|m)jwojh\b/$1jojh/
+  - xform/(a|e|o)i(\b|x|h)/$1j$2/
+  # 臻攝
+  - xform/jo(n|t)(\b|x|h)/jI$1$2/
+  - xform/jwo(n|t)(\b|x|h)/ju$1$2/
+  - xform/jw(n|t)(\b|x|h)/wi$1$2/
+  # 山攝
+  - xform/\b(ph?|b|m)wa(n|t)(\b|x|h)/$1a$2$3/
+  - xform/(jw?)a(n|t)(\b|x|h)/$1o$2$3/
+  - xform/\b(ph?|b|m)jwo(n|t)(\b|x|h)/$1jo$2$3/
+  # 效攝
+  - xform/([ae])u(\b|x|h)/$1w$2/
+  # 果攝
+  - xform/\b(ph?|b|m)wa(\b|x|h)/$1a$2/
+  # 假攝
+  - xform/ja(\b|x|h)/jae$1/
+  - xform/\b(kh?|g)jae(\b|x|h)/$1ja$2/
+  # 梗攝
+  - xform/\b(ph?|b|m|kh?|g|ng|x|h|q)(jw?)e(ng|k)/$1$2ae$3/
+  - xform/\b(t?s|d?z)(rh?j)e(ng|k)/$1$2ae$3/
+  # 曾攝
+  - xform/jwk/wik/
+  # 流攝
+  - xform/(?<!a|e)u(\b|x|h)/uw$1/
+  - xform/jw(\b|x|h)/jiw$1/
+  # 咸攝
+  - xform/ja(m|p)/jae$1/
+  - xform/jwa(m|p)/jo$1/
+
+  - xform/q/'/
+  - xlit/YUI/yu+/
+  - xform/y(h?)j+/y$1/
+  - xform/x\b/X/
+  - xform/h\b/H/
